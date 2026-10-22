@@ -51,7 +51,13 @@ class WorkProgramPolicy
 
     public function changeStatus(User $user, WorkProgram $program): bool
     {
-        return $this->update($user, $program);
+        if ($this->update($user, $program)) {
+            return true;
+        }
+
+        return $user->role === User::ROLE_CAMPUS_HEAD
+            && $user->assignedCampusId() !== null
+            && (int) $program->campus_id === (int) $user->assignedCampusId();
     }
 
     public function reportProgress(User $user, WorkProgram $program): bool

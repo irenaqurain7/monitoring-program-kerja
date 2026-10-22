@@ -65,10 +65,28 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/', 'store')->middleware('role:unit_head')->name('store');
             Route::get('/{program}/ubah', 'edit')->middleware('role:unit_head')->whereNumber('program')->name('edit');
             Route::put('/{program}', 'update')->middleware('role:unit_head')->whereNumber('program')->name('update');
-            Route::patch('/{program}/status', 'changeStatus')->middleware('role:unit_head')->whereNumber('program')->name('status');
+            Route::patch('/{program}/status', 'changeStatus')->middleware('role:campus_head,unit_head')->whereNumber('program')->name('status');
+            Route::put('/{program}/target-bulanan', 'updateMonthlyTargets')->middleware('role:unit_head')->whereNumber('program')->name('monthly-targets');
             Route::post('/{program}/capaian', 'reportProgress')->whereNumber('program')->name('progress');
             Route::get('/{program}', 'show')->whereNumber('program')->name('show');
         });
+
+    Route::middleware('role:campus_head,unit_head,unit_member')
+        ->prefix('komunikasi')
+        ->name('communication.')
+        ->controller(\App\Http\Controllers\CommunicationTopicController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/buat', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('/{topic}', 'show')->whereNumber('topic')->name('show');
+            Route::post('/{topic}/pesan', 'storeMessage')->whereNumber('topic')->name('message');
+            Route::patch('/{topic}/status', 'updateStatus')->whereNumber('topic')->name('status');
+        });
+
+    Route::middleware('role:campus_head,unit_head,unit_member')
+        ->get('/laporan', [\App\Http\Controllers\ReportController::class, 'index'])
+        ->name('reports.index');
 
     Route::middleware('role:system_admin,campus_head,unit_head')
         ->prefix('manajemen-pengguna')

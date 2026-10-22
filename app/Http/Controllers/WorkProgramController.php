@@ -115,7 +115,59 @@ class WorkProgramController extends Controller
         $workProgram = $this->findVisibleProgram($request->user(), $program->id);
         Gate::authorize('view', $workProgram);
 
+        $workProgram->ensureMonthlyTargetsExist();
+        $workProgram->load(['monthlyTargets', 'progressUpdates.reporter', 'responsible', 'unit.campus', 'team']);
+
         return view('work-programs.show', ['program' => $workProgram]);
+    }
+
+    public function updateMonthlyTargets(Request $request, WorkProgram $program): RedirectResponse
+    {
+        $workProgram = $this->findVisibleProgram($request->user(), $program->id);
+        Gate::authorize('update', $workProgram);
+
+        $data = $request->validate([
+            'targets' => ['required', 'array'],
+            'targets.*.target' => ['required', 'numeric', 'min:0'],
+            'targets.*.actual' => ['nullable', 'numeric', 'min:0'],
+            'targets.*.notes' => ['nullable', 'string', 'max:500'],
+        ], [
+            'targets.*.target.required' => 'Target bulanan harus diisi.',
+            'targets.*.target.min' => 'Target bulanan tidak boleh bernilai negatif.',
+            'targets.*.actual.min' => 'Realisasi bulanan tidak boleh bernilai negatif.',
+        ]);
+
+        foreach ($data['targets'] as $month => $monthData) {
+            $monthNum = (int) $month;
+            if ($monthNum < 1 || $monthNum > 12) {
+                continue;
+            }
+
+            $actual = isset($monthData['actual']) && $monthData['actual'] !== '' ? (float) $monthData['actual'] : null;
+            $target = (float) $monthData['target'];
+
+            $status = \App\Models\WorkProgramMonthlyTarget::STATUS_NOT_STARTED;
+            if ($actual !== null) {
+                if ($target > 0 && $actual >= $target) {
+                    $status = \App\Models\WorkProgramMonthlyTarget::STATUS_ACHIEVED;
+                } elseif ($actual > 0) {
+                    $status = \App\Models\WorkProgramMonthlyTarget::STATUS_IN_PROGRESS;
+                }
+            }
+
+            $workProgram->monthlyTargets()->updateOrCreate(
+                ['month' => $monthNum],
+                [
+                    'target' => $target,
+                    'actual' => $actual,
+                    'notes' => $monthData['notes'] ?? null,
+                    'status' => $status,
+                ]
+            );
+        }
+
+        return redirect()->route('work-programs.show', $workProgram)
+            ->with('status', 'Target dan realisasi bulanan berhasil diperbarui.');
     }
 
     public function edit(Request $request, WorkProgram $program): View

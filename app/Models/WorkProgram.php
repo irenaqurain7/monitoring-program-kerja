@@ -13,6 +13,8 @@ class WorkProgram extends Model
     use HasFactory;
 
     public const STATUS_DRAFT = 'draft';
+    public const STATUS_SUBMITTED = 'submitted';
+    public const STATUS_APPROVED = 'approved';
     public const STATUS_ACTIVE = 'active';
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_POSTPONED = 'postponed';
@@ -48,7 +50,9 @@ class WorkProgram extends Model
     {
         return [
             self::STATUS_DRAFT => 'Rancangan',
-            self::STATUS_ACTIVE => 'Aktif',
+            self::STATUS_SUBMITTED => 'Diajukan',
+            self::STATUS_APPROVED => 'Disetujui',
+            self::STATUS_ACTIVE => 'Berjalan',
             self::STATUS_COMPLETED => 'Selesai',
             self::STATUS_POSTPONED => 'Ditunda',
         ];
@@ -72,6 +76,31 @@ class WorkProgram extends Model
     public function progressUpdates(): HasMany
     {
         return $this->hasMany(WorkProgramProgressUpdate::class)->orderByDesc('created_at')->orderByDesc('id');
+    }
+
+    public function monthlyTargets(): HasMany
+    {
+        return $this->hasMany(WorkProgramMonthlyTarget::class)->orderBy('month');
+    }
+
+    public function ensureMonthlyTargetsExist(): void
+    {
+        for ($month = 1; $month <= 12; $month++) {
+            $this->monthlyTargets()->firstOrCreate(
+                ['month' => $month],
+                ['target' => 0, 'actual' => null, 'status' => WorkProgramMonthlyTarget::STATUS_NOT_STARTED]
+            );
+        }
+    }
+
+    public function totalMonthlyTarget(): float
+    {
+        return (float) $this->monthlyTargets()->sum('target');
+    }
+
+    public function totalMonthlyActual(): float
+    {
+        return (float) $this->monthlyTargets()->whereNotNull('actual')->sum('actual');
     }
 
     public function latestProgress(): HasOne

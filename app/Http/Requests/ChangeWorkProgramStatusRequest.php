@@ -36,8 +36,37 @@ class ChangeWorkProgramStatusRequest extends FormRequest
 
     private function allowedTransitions(): array
     {
-        return match ($this->route('program')->status) {
+        $status = $this->route('program')->status;
+        $isCampusHead = $this->user()?->role === \App\Models\User::ROLE_CAMPUS_HEAD;
+
+        if ($isCampusHead) {
+            return match ($status) {
+                WorkProgram::STATUS_SUBMITTED => [
+                    WorkProgram::STATUS_APPROVED,
+                    WorkProgram::STATUS_DRAFT,
+                ],
+                WorkProgram::STATUS_APPROVED => [
+                    WorkProgram::STATUS_ACTIVE,
+                    WorkProgram::STATUS_POSTPONED,
+                ],
+                default => [
+                    WorkProgram::STATUS_ACTIVE,
+                    WorkProgram::STATUS_COMPLETED,
+                    WorkProgram::STATUS_POSTPONED,
+                ],
+            };
+        }
+
+        return match ($status) {
             WorkProgram::STATUS_DRAFT => [
+                WorkProgram::STATUS_SUBMITTED,
+                WorkProgram::STATUS_ACTIVE,
+                WorkProgram::STATUS_POSTPONED,
+            ],
+            WorkProgram::STATUS_SUBMITTED => [
+                WorkProgram::STATUS_DRAFT,
+            ],
+            WorkProgram::STATUS_APPROVED => [
                 WorkProgram::STATUS_ACTIVE,
                 WorkProgram::STATUS_POSTPONED,
             ],

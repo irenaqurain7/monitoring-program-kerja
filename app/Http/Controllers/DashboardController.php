@@ -33,7 +33,19 @@ class DashboardController extends Controller
             : $user->unit?->campus;
 
         if ($user->role !== User::ROLE_CAMPUS_HEAD) {
-            return view($view, compact('user', 'assignedCampus'));
+            $unitPrograms = collect();
+            $myTopicsCount = 0;
+            if ($user->unit_id) {
+                $unitPrograms = WorkProgram::query()
+                    ->where('unit_id', $user->unit_id)
+                    ->with('latestProgress')
+                    ->get();
+                $myTopicsCount = \App\Models\CommunicationTopic::query()
+                    ->where('creator_id', $user->id)
+                    ->count();
+            }
+
+            return view($view, compact('user', 'assignedCampus', 'unitPrograms', 'myTopicsCount'));
         }
 
         Gate::authorize('viewAny', Unit::class);
@@ -63,6 +75,16 @@ class DashboardController extends Controller
             ->where('campus_id', $assignedCampus->id)
             ->with('latestProgress')
             ->get();
+
+        $pendingTopics = \App\Models\CommunicationTopic::query()
+            ->where('campus_id', $assignedCampus->id)
+            ->whereIn('status', [
+                \App\Models\CommunicationTopic::STATUS_NEW,
+                \App\Models\CommunicationTopic::STATUS_UNDER_REVIEW,
+                \App\Models\CommunicationTopic::STATUS_IN_PROGRESS,
+            ])
+            ->count();
+
         $summary = [
             'active_units' => $units->where('is_active', true)->count(),
             'active_teams' => $units->sum('active_teams_count'),
@@ -75,8 +97,53 @@ class DashboardController extends Controller
             'without_update' => $programs->filter(fn (WorkProgram $program) =>
                 $program->status === WorkProgram::STATUS_ACTIVE
                 && ! $program->latestProgress)->count(),
+            'pending_topics' => $pendingTopics,
         ];
 
-        return view($view, compact('user', 'assignedCampus', 'units', 'programs', 'summary'));
+        // 12-Month Aggregated Analytics for Target vs Realisasi
+        $monthlyTargetRecords = \App\Models\WorkProgramMonthlyTarget::query()
+            ->whereIn('work_program_id', $programs->pluck('id'))
+            ->selectRaw('month, SUM(target) as total_target, SUM(actual) as total_actual')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $chartMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        $chartTargets = [];
+        $chartActuals = [];
+
+        for ($m = 1; $m <= 12; $m++) {
+            $record = $monthlyTargetRecords->get($m);
+            $chartTargets[] = $record ? (float) $record->total_target : 0.0;
+            $chartActuals[] = $record ? (float) $record->total_actual : 0.0;
+        }
+
+        // Priority attention items (overdue or lacking recent updates)
+        $attentionPrograms = $programs->filter(fn (WorkProgram $program) =>
+            $program->status === WorkProgram::STATUS_ACTIVE && (
+                $program->due_date->lt(now()->startOfDay()) || ! $program->latestProgress
+            )
+        )->values();
+
+        $recentTopics = \App\Models\CommunicationTopic::query()
+            ->where('campus_id', $assignedCampus->id)
+            ->with(['unit', 'creator'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        return view($view, compact(
+            'user',
+            'assignedCampus',
+            'units',
+            'programs',
+            'summary',
+            'chartMonths',
+            'chartTargets',
+            'chartActuals',
+            'attentionPrograms',
+            'recentTopics'
+        ));
     }
 }
