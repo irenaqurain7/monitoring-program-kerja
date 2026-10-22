@@ -16,6 +16,25 @@
         .btn-app { background: var(--red); border-color: var(--red); color: #fff; }
         .btn-app:hover, .btn-app:focus { background: #941b28; border-color: #941b28; color: #fff; }
         .login-shell { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; }
+        .app-menu { position: relative; }
+        .app-menu summary { list-style: none; cursor: pointer; }
+        .app-menu summary::-webkit-details-marker { display: none; }
+        .app-menu summary::after { content: 'v'; margin-left: .45rem; font-size: .75em; }
+        .app-menu[open] summary::after { content: '^'; }
+        .app-menu-list {
+            position: absolute;
+            top: calc(100% + .5rem);
+            right: 0;
+            z-index: 1000;
+            min-width: 12rem;
+            padding: .5rem;
+            background: #fff;
+            border: 1px solid rgba(16, 42, 67, .12);
+            border-radius: .5rem;
+            box-shadow: 0 .5rem 1rem rgba(16, 42, 67, .15);
+        }
+        .app-menu-list a { display: block; padding: .5rem .75rem; color: var(--navy); text-decoration: none; border-radius: .25rem; }
+        .app-menu-list a:hover, .app-menu-list a:focus { background: #f4f6f9; }
     </style>
 </head>
 <body>
@@ -24,15 +43,20 @@
             <a class="navbar-brand brand-mark" href="{{ route('dashboard') }}">Monitoring Program Kerja</a>
             @auth
                 <div class="d-flex align-items-center gap-3 text-white">
-                    @if (in_array(auth()->user()->role, ['campus_head', 'unit_head', 'unit_member'], true))
-                        <a class="btn btn-sm btn-outline-light" href="{{ route('work-programs.index') }}">Program Kerja</a>
-                    @endif
-                    @if (auth()->user()->role === 'campus_head')
-                        <a class="btn btn-sm btn-outline-light" href="{{ route('units.index') }}">Kelola Unit & Tim</a>
-                    @endif
-                    @if (in_array(auth()->user()->role, ['system_admin', 'campus_head', 'unit_head'], true))
-                        <a class="btn btn-sm btn-outline-light" href="{{ route('users.index') }}">Pengguna</a>
-                    @endif
+                    <details class="app-menu">
+                        <summary class="btn btn-sm btn-outline-light">Menu</summary>
+                        <div class="app-menu-list">
+                            @if (in_array(auth()->user()->role, ['campus_head', 'unit_head', 'unit_member'], true))
+                                <a href="{{ route('work-programs.index') }}">Program Kerja</a>
+                            @endif
+                            @if (auth()->user()->role === 'campus_head')
+                                <a href="{{ route('units.index') }}">Kelola Unit & Tim</a>
+                            @endif
+                            @if (in_array(auth()->user()->role, ['system_admin', 'campus_head', 'unit_head'], true))
+                                <a href="{{ route('users.index') }}">Pengguna</a>
+                            @endif
+                        </div>
+                    </details>
                     <span class="d-none d-sm-inline">{{ auth()->user()->name }}</span>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
