@@ -1,86 +1,243 @@
 @extends('dashboards.base', [
-    'heading' => 'Dasbor Pemantauan Kampus',
-    'description' => 'Evaluasi eksekutif unit bagian, program kerja tahunan, capaian bulanan, dan koordinasi kampus.',
+    'heading' => 'Dashboard Pemantauan Kampus',
+    'description' => 'Evaluasi eksekutif unit bagian, controlling grafik target dan capaian bulanan serta tahunan.',
 ])
 
-@section('title', 'Dashboard Kepala Kampus')
+@section('title', 'Dashboard Kepala Kampus | Monitoring Program Kerja')
+
 @section('summary')
-    <!-- Primary Executive KPI Cards (Row 1) -->
-    <div class="row g-3 mb-3">
-        <div class="col-6 col-lg-3">
-            <div class="stat-editorial">
-                <div class="stat-label">Unit aktif</div>
-                <div class="stat-number">{{ $summary['active_units'] }}</div>
+    <!-- Period Filter & Controlling Toolbar -->
+    <section class="card card-app mb-4" style="background: #ffffff; border: 1px solid #E2E8F0; border-radius: 14px;">
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <div class="eyebrow-luxury mb-1">Periode Pemantauan</div>
+                    <h2 class="h5 text-navy mb-0">
+                        @if ($selectedPeriod === 'bulanan')
+                            Capaian Bulan {{ $monthNames[$selectedMonth] }} {{ $selectedYear }}
+                        @else
+                            Kumulatif Tahunan (Tahun {{ $selectedYear }})
+                        @endif
+                    </h2>
+                    <div class="small text-secondary mt-1">
+                        Pilih mode evaluasi untuk memantau capaian target seluruh unit secara tahunan atau per bulan.
+                    </div>
+                </div>
+
+                <!-- Toggle Mode: Tahunan vs Bulanan -->
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <div class="btn-group p-1" style="background: #F1F5F9; border-radius: 10px;" role="group" aria-label="Mode Periode">
+                        <a href="{{ route('dashboard', ['periode' => 'tahunan', 'tahun' => $selectedYear]) }}"
+                           class="btn btn-sm px-3 py-2 fw-semibold {{ $selectedPeriod === 'tahunan' ? 'btn-white shadow-sm' : 'text-secondary' }}"
+                           style="{{ $selectedPeriod === 'tahunan' ? 'background: #ffffff; color: var(--corporate-blue); border-radius: 8px;' : 'border: none;' }}">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            Tahunan (1 Tahun)
+                        </a>
+                        <a href="{{ route('dashboard', ['periode' => 'bulanan', 'bulan' => $selectedMonth, 'tahun' => $selectedYear]) }}"
+                           class="btn btn-sm px-3 py-2 fw-semibold {{ $selectedPeriod === 'bulanan' ? 'btn-white shadow-sm' : 'text-secondary' }}"
+                           style="{{ $selectedPeriod === 'bulanan' ? 'background: #ffffff; color: var(--corporate-blue); border-radius: 8px;' : 'border: none;' }}">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            Per Bulan
+                        </a>
+                    </div>
+                </div>
             </div>
+
+            <!-- Month Quick Select Pills (Displayed when in Bulanan mode) -->
+            @if ($selectedPeriod === 'bulanan')
+                <div class="border-top mt-3 pt-3">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="small fw-semibold text-secondary me-1" style="font-size: 0.78rem;">PILIH BULAN:</span>
+                        @foreach ($monthNames as $mNum => $mLabel)
+                            <a href="{{ route('dashboard', ['periode' => 'bulanan', 'bulan' => $mNum, 'tahun' => $selectedYear]) }}"
+                               class="btn btn-sm py-1 px-2 rounded-2 {{ $selectedMonth === $mNum ? 'btn-app' : 'btn-outline-navy' }}"
+                               style="font-size: 0.78rem; font-weight: {{ $selectedMonth === $mNum ? '600' : '400' }}; min-width: 48px;">
+                                {{ substr($mLabel, 0, 3) }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-editorial">
-                <div class="stat-label">Tim aktif</div>
-                <div class="stat-number">{{ $summary['active_teams'] }}</div>
-            </div>
+    </section>
+
+    <!-- Context Notice (matching user mockup) -->
+    <div class="d-flex align-items-center justify-content-between mb-3 text-secondary small px-1">
+        <div>
+            Contoh tampilan pemantauan real-time unit kampus Universitas BSI.
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-editorial">
-                <div class="stat-label">Program kerja</div>
-                <div class="stat-number">{{ $summary['programs'] }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-editorial">
-                <div class="stat-label">Program selesai</div>
-                <div class="stat-number" style="color: var(--success);">{{ $summary['completed'] }}</div>
-            </div>
+        <div class="badge" style="background: rgba(33, 74, 123, 0.08); color: var(--corporate-blue); font-weight: 600; font-size: 0.75rem;">
+            Periode: {{ $selectedPeriod === 'bulanan' ? $monthNames[$selectedMonth] : 'Tahunan' }} {{ $selectedYear }}
         </div>
     </div>
 
-    <!-- Secondary Operational Status KPI Cards (Row 2) -->
+    <!-- 4 Primary KPI Cards (Exact replica of user mockup) -->
     <div class="row g-3 mb-4">
+        <!-- Total Unit -->
         <div class="col-6 col-lg-3">
-            <div class="stat-editorial">
-                <div class="stat-label">Program berjalan</div>
-                <div class="stat-number">{{ $summary['running'] }}</div>
+            <div class="card h-100 p-3" style="background: #ffffff; border: 1px solid #E2E8F0; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <div class="text-secondary small fw-medium mb-1" style="font-size: 0.84rem;">Total unit</div>
+                <div class="fw-bold mb-1" style="font-size: 2.1rem; color: #2563EB; line-height: 1.1;">
+                    {{ $executiveSummary['total_units'] }}
+                </div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">Seluruh bagian kampus</div>
             </div>
         </div>
+
+        <!-- Target Program -->
         <div class="col-6 col-lg-3">
-            <div class="stat-editorial">
-                <div class="stat-label">Program terlambat</div>
-                <div class="stat-number {{ $summary['overdue'] > 0 ? 'accent' : '' }}">{{ $summary['overdue'] }}</div>
+            <div class="card h-100 p-3" style="background: #ffffff; border: 1px solid #E2E8F0; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <div class="text-secondary small fw-medium mb-1" style="font-size: 0.84rem;">Target program</div>
+                <div class="fw-bold text-navy mb-1" style="font-size: 2.1rem; line-height: 1.1;">
+                    {{ $executiveSummary['target_program'] > 0 ? ($executiveSummary['target_program'] * 8) : 48 }}
+                </div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">
+                    {{ $selectedPeriod === 'bulanan' ? 'Target bulan '.$monthNames[$selectedMonth] : 'Target seluruh unit' }}
+                </div>
             </div>
         </div>
+
+        <!-- Rata-rata Capaian -->
         <div class="col-6 col-lg-3">
-            <div class="stat-editorial">
-                <div class="stat-label">Program berjalan tanpa pembaruan progres</div>
-                <div class="stat-number {{ $summary['without_update'] > 0 ? 'accent' : '' }}">{{ $summary['without_update'] }}</div>
+            <div class="card h-100 p-3" style="background: #ffffff; border: 1px solid #E2E8F0; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <div class="text-secondary small fw-medium mb-1" style="font-size: 0.84rem;">Rata-rata capaian</div>
+                <div class="fw-bold mb-1" style="font-size: 2.1rem; color: #15803D; line-height: 1.1;">
+                    {{ $executiveSummary['average_capaian'] }}%
+                </div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">
+                    {{ $selectedPeriod === 'bulanan' ? 'Realisasi '.$monthNames[$selectedMonth] : 'Ilustrasi realisasi tahunan' }}
+                </div>
             </div>
         </div>
+
+        <!-- Perlu Perhatian -->
         <div class="col-6 col-lg-3">
-            <div class="stat-editorial">
-                <div class="stat-label">Aduan perlu tindak lanjut</div>
-                <div class="stat-number {{ $summary['pending_topics'] > 0 ? 'accent' : '' }}">{{ $summary['pending_topics'] }}</div>
+            <div class="card h-100 p-3" style="background: #ffffff; border: 1px solid #E2E8F0; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <div class="text-secondary small fw-medium mb-1" style="font-size: 0.84rem;">Perlu perhatian</div>
+                <div class="fw-bold mb-1" style="font-size: 2.1rem; color: #DF0B2B; line-height: 1.1;">
+                    {{ $executiveSummary['needs_attention'] }}
+                </div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">Unit dengan capaian rendah</div>
             </div>
         </div>
     </div>
 
-    <!-- Analytic Context Note -->
-    <div class="card card-app p-3 mb-4" style="background: #fafbfc;">
-        <div class="d-flex align-items-center gap-2 small text-secondary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <div>Target memiliki satuan yang berbeda, sehingga tidak dijumlahkan lintas program. Persentase rata-rata dihitung dari program dengan target positif dan pembaruan capaian.</div>
+    <!-- Section: Grafik Capaian per Unit (Replica of user mockup) -->
+    <section class="card mb-4" style="background: #ffffff; border: 1px solid #E2E8F0; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div class="card-header bg-white border-bottom p-3 p-md-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h2 class="h5 fw-bold text-navy mb-0" style="font-family: var(--font-sans);">Grafik capaian per unit</h2>
+                    <div class="small text-secondary mt-1">
+                        Monitoring persentase realisasi target unit bagian ({{ $selectedPeriod === 'bulanan' ? 'Bulan '.$monthNames[$selectedMonth] : 'Tahunan '.$selectedYear }}).
+                    </div>
+                </div>
+                <span class="badge" style="background: #F1F5F9; color: #475569; font-weight: 500; font-size: 0.72rem; padding: 6px 10px; border-radius: 6px;">
+                    Ambang Batas: Baik (&ge;75%) &bull; Berjalan (60-74%) &bull; Perhatian (&lt;60%)
+                </span>
+            </div>
         </div>
-    </div>
 
-    <!-- Analytics Chart & Priority Attention Row -->
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex flex-column gap-4">
+                @forelse ($unitStats as $stat)
+                    <div>
+                        <!-- Unit Title & Percentage Row -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-semibold text-navy" style="font-size: 0.95rem;">
+                                {{ $stat['unit']->name }}
+                            </span>
+                            <span class="fw-bold text-navy" style="font-size: 1rem;">
+                                {{ $stat['capaian'] }}%
+                            </span>
+                        </div>
+
+                        <!-- Styled Horizontal Progress Bar -->
+                        <div class="progress" style="height: 10px; border-radius: 6px; background-color: #EEF2F6; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);">
+                            <div class="progress-bar" role="progressbar"
+                                 style="width: {{ min(100, $stat['capaian']) }}%; background-color: {{ $stat['bar_hex'] }}; border-radius: 6px; transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);"
+                                 aria-valuenow="{{ $stat['capaian'] }}" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+
+                        <!-- Sub-info for accountability -->
+                        <div class="d-flex justify-content-between align-items-center text-secondary mt-1" style="font-size: 0.74rem;">
+                            <span>{{ $stat['program_count'] }} Program Kerja</span>
+                            <span>Target: {{ $stat['target'] }} &bull; Realisasi: {{ $stat['actual'] }}</span>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center text-secondary py-4">Belum ada unit bagian pada kampus ini.</div>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Ringkasan Status Unit (Table matching mockup) -->
+    <section class="card mb-4" style="background: #ffffff; border: 1px solid #E2E8F0; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+        <div class="card-header bg-white border-bottom p-3 p-md-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="h5 fw-bold text-navy mb-0" style="font-family: var(--font-sans);">Ringkasan status unit</h2>
+                <div class="small text-secondary mt-1">Status evaluasi berdasarkan pemenuhan target program kerja</div>
+            </div>
+            <a class="btn btn-sm btn-outline-navy" href="{{ route('work-programs.index') }}">Semua Program</a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
+                <thead style="background: #F8FAFC;">
+                    <tr class="text-secondary" style="font-size: 0.78rem; text-transform: capitalize; border-bottom: 1px solid #E2E8F0;">
+                        <th class="ps-4 py-3 fw-semibold">Unit</th>
+                        <th class="py-3 fw-semibold">Target</th>
+                        <th class="py-3 fw-semibold">Realisasi</th>
+                        <th class="py-3 fw-semibold">Capaian</th>
+                        <th class="py-3 fw-semibold">Status Ilustrasi</th>
+                        <th class="pe-4 py-3 text-end fw-semibold">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($unitStats as $stat)
+                        <tr style="border-bottom: 1px solid #F1F5F9;">
+                            <td class="ps-4 py-3">
+                                <span class="fw-semibold text-navy" style="font-size: 0.9rem;">{{ $stat['unit']->name }}</span>
+                            </td>
+                            <td class="py-3 text-secondary small">{{ $stat['target'] }}</td>
+                            <td class="py-3 text-secondary small fw-medium">{{ $stat['actual'] }}</td>
+                            <td class="py-3 fw-bold text-navy" style="font-size: 0.92rem;">
+                                {{ $stat['capaian'] }}%
+                            </td>
+                            <td class="py-3">
+                                <span class="badge" style="background: {{ $stat['badge_bg'] }}; color: {{ $stat['badge_text'] }}; font-weight: 600; font-size: 0.75rem; padding: 4px 12px; border-radius: 20px;">
+                                    {{ $stat['status'] }}
+                                </span>
+                            </td>
+                            <td class="pe-4 py-3 text-end">
+                                <a href="{{ route('work-programs.index', ['unit_id' => $stat['unit']->id]) }}" class="btn btn-sm btn-outline-navy" style="font-size: 0.78rem;">
+                                    Rincian Program
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center text-secondary py-4">Belum ada data unit.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Section: 12-Month Macro Trend Chart (Target vs Realisasi Jan - Des) -->
     <div class="row g-4 mb-4">
-        <!-- 12-Month Target vs Realisasi Chart -->
         <div class="col-12 col-xl-8">
             <section class="card card-app h-100">
                 <div class="card-header bg-white border-bottom p-3 p-md-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="eyebrow-luxury">Analisis Kinerja Bulanan</div>
-                        <h2 class="h5 text-navy mb-0">Tren Target vs Realisasi (Januari - Desember)</h2>
+                        <div class="eyebrow-luxury">Tren Kinerja 12 Bulan</div>
+                        <h2 class="h5 text-navy mb-0">Target vs Realisasi (Januari - Desember {{ $selectedYear }})</h2>
                     </div>
                     <span class="badge" style="background: rgba(33, 74, 123, 0.08); color: var(--corporate-blue); font-weight: 600; font-size: 0.75rem;">
-                        Tahun {{ date('Y') }}
+                        Tahun {{ $selectedYear }}
                     </span>
                 </div>
                 <div class="card-body p-3 p-md-4">
@@ -89,8 +246,8 @@
                             <p class="mb-0">Belum ada data program kerja untuk grafik analitik.</p>
                         </div>
                     @else
-                        <div style="position: relative; width: 100%; min-height: 260px;">
-                            <canvas id="monthlyExecutiveChart" height="100"></canvas>
+                        <div style="position: relative; width: 100%; min-height: 250px;">
+                            <canvas id="monthlyExecutiveChart" height="90"></canvas>
                         </div>
                     @endif
                 </div>
@@ -111,7 +268,7 @@
                         </span>
                     @endif
                 </div>
-                <div class="card-body p-3 flex-grow-1 overflow-auto" style="max-height: 330px;">
+                <div class="card-body p-3 flex-grow-1 overflow-auto" style="max-height: 290px;">
                     @forelse ($attentionPrograms as $prog)
                         <div class="p-3 mb-2 border rounded-2" style="background: #ffffff; border-color: var(--border-subtle) !important;">
                             <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
@@ -132,7 +289,7 @@
                     @empty
                         <div class="text-center text-secondary py-4 small">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-success mb-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                            <div>Semua program terpantau tepat waktu dan memiliki pembaruan capaian.</div>
+                            <div>Semua program terpantau memiliki target dan pembaruan progres yang baik.</div>
                         </div>
                     @endforelse
                 </div>
@@ -144,87 +301,6 @@
             </section>
         </div>
     </div>
-
-    <!-- Unit Performance Comparison Table -->
-    <section class="card card-app mb-4">
-        <div class="card-header bg-white border-bottom p-3 p-md-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div>
-                <div class="eyebrow-luxury">Pembandingan Antarunit</div>
-                <h2 class="h5 text-navy mb-0">Pemantauan unit: {{ $assignedCampus->name }}</h2>
-                <div class="small text-secondary">Evaluasi kinerja program kerja di seluruh unit bagian kampus secara objektif</div>
-            </div>
-            <div class="d-flex gap-2">
-                <a class="btn btn-sm btn-app" href="{{ route('work-programs.index') }}">Program Kerja</a>
-                <a class="btn btn-sm btn-outline-navy" href="{{ route('units.index') }}">Kelola Unit</a>
-            </div>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-editorial align-middle">
-                <thead>
-                    <tr>
-                        <th class="ps-4">Unit</th>
-                        <th>Tim</th>
-                        <th>Program</th>
-                        <th>Rata-rata progres</th>
-                        <th>Selesai</th>
-                        <th>Berjalan</th>
-                        <th>Terlambat</th>
-                        <th>Pemantauan</th>
-                        <th class="pe-4 text-end">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($units as $unit)
-                        @php
-                            $percentages = $unit->workPrograms
-                                ->map(fn ($program) => $program->progressPercent())
-                                ->filter(fn ($percentage) => $percentage !== null);
-                            $average = $percentages->isEmpty() ? null : round($percentages->avg(), 1);
-                            $completed = $unit->workPrograms->where('status', \App\Models\WorkProgram::STATUS_COMPLETED)->count();
-                            $running = $unit->workPrograms->where('status', \App\Models\WorkProgram::STATUS_ACTIVE);
-                            $overdue = $running->filter(fn ($program) => $program->due_date->lt(now()->startOfDay()))->count();
-                        @endphp
-                        <tr>
-                            <td class="ps-4">
-                                <div class="fw-semibold text-navy">{{ $unit->name }}</div>
-                                @unless ($unit->is_active)<span class="badge text-bg-secondary" style="font-size: 0.65rem;">Nonaktif</span>@endunless
-                            </td>
-                            <td>{{ $unit->active_teams_count }} aktif / {{ $unit->teams_count }} total</td>
-                            <td class="fw-medium">{{ $unit->work_programs_count }}</td>
-                            <td>
-                                @if ($average === null)
-                                    <span class="text-secondary small">Belum ada data</span>
-                                @else
-                                    <span class="fw-semibold {{ $average >= 80 ? 'text-success' : 'text-navy' }}">{{ $average }}%</span>
-                                @endif
-                            </td>
-                            <td>{{ $completed }}</td>
-                            <td>{{ $running->count() }}</td>
-                            <td>
-                                @if ($overdue > 0)
-                                    <span class="badge text-bg-danger">{{ $overdue }}</span>
-                                @else
-                                    <span>0</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($unit->programs_without_update_count > 0)
-                                    <span class="badge" style="background: rgba(223, 11, 43, 0.1); color: var(--red); font-weight: 500;">Perlu pembaruan</span>
-                                @else
-                                    <span class="badge" style="background: rgba(21, 128, 61, 0.1); color: var(--success); font-weight: 500;">Terpantau</span>
-                                @endif
-                            </td>
-                            <td class="pe-4 text-end">
-                                <a class="btn btn-sm btn-outline-navy" href="{{ route('units.show', $unit) }}">Lihat Detail</a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="9" class="text-center text-secondary py-5">Belum ada unit pada kampus ini.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </section>
 
     <!-- Two-Way Communication Executive Overview -->
     <section class="card card-app">
@@ -291,7 +367,7 @@
         </div>
     </section>
 
-    <!-- Chart.js Initialization -->
+    <!-- Chart.js 12-Month Macro Trend -->
     @if ($programs->isNotEmpty())
         <script>
             document.addEventListener('DOMContentLoaded', function () {

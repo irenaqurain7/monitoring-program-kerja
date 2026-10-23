@@ -74,7 +74,7 @@ class User extends Authenticatable
         return [
             'campus_head' => 'Kepala Kampus',
             'admin_so' => 'Admin & SO',
-            'marcomm' => 'Marcom',
+            'marcomm' => 'Marketing Communication',
             'bsi_career_center' => 'BSI Career Center (BCC)',
             'bsi_entrepreneur_center' => 'BSI Enterpreneur Center',
             'kemahasiswaan' => 'Kemahasiswaan',
@@ -86,7 +86,7 @@ class User extends Authenticatable
     {
         return [
             'admin_so' => 'Admin & SO',
-            'marcomm' => 'Marcomm',
+            'marcomm' => 'Marketing Communication',
             'bsi_career_center' => 'BSI Career Center',
             'bsi_entrepreneur_center' => 'BSI Entrepreneur Center',
             'kemahasiswaan' => 'Kemahasiswaan',

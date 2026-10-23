@@ -61,12 +61,12 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->controller(WorkProgramController::class)
         ->group(function () {
             Route::get('/', 'index')->name('index');
-            Route::get('/buat', 'create')->middleware('role:unit_head')->name('create');
-            Route::post('/', 'store')->middleware('role:unit_head')->name('store');
-            Route::get('/{program}/ubah', 'edit')->middleware('role:unit_head')->whereNumber('program')->name('edit');
-            Route::put('/{program}', 'update')->middleware('role:unit_head')->whereNumber('program')->name('update');
-            Route::patch('/{program}/status', 'changeStatus')->middleware('role:campus_head,unit_head')->whereNumber('program')->name('status');
-            Route::put('/{program}/target-bulanan', 'updateMonthlyTargets')->middleware('role:unit_head')->whereNumber('program')->name('monthly-targets');
+            Route::get('/buat', 'create')->middleware('role:unit_head,unit_member')->name('create');
+            Route::post('/', 'store')->middleware('role:unit_head,unit_member')->name('store');
+            Route::get('/{program}/ubah', 'edit')->middleware('role:unit_head,unit_member')->whereNumber('program')->name('edit');
+            Route::put('/{program}', 'update')->middleware('role:unit_head,unit_member')->whereNumber('program')->name('update');
+            Route::patch('/{program}/status', 'changeStatus')->middleware('role:campus_head,unit_head,unit_member')->whereNumber('program')->name('status');
+            Route::put('/{program}/target-bulanan', 'updateMonthlyTargets')->middleware('role:unit_head,unit_member')->whereNumber('program')->name('monthly-targets');
             Route::post('/{program}/capaian', 'reportProgress')->whereNumber('program')->name('progress');
             Route::get('/{program}', 'show')->whereNumber('program')->name('show');
         });

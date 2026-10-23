@@ -52,6 +52,47 @@ class DashboardController extends Controller
 
         abort_if(! $assignedCampus, 403, 'Akun belum memiliki penugasan kampus yang valid.');
 
+        $selectedPeriod = $request->query('periode', 'tahunan');
+        if (! in_array($selectedPeriod, ['tahunan', 'bulanan'], true)) {
+            $selectedPeriod = 'tahunan';
+        }
+
+        $selectedMonth = (int) $request->query('bulan', now()->month);
+        if ($selectedMonth < 1 || $selectedMonth > 12) {
+            $selectedMonth = (int) now()->month;
+        }
+
+        $selectedYear = (int) $request->query('tahun', now()->year);
+        if ($selectedYear < 2000 || $selectedYear > 2100) {
+            $selectedYear = (int) now()->year;
+        }
+
+        $monthNames = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
+        ];
+
+        // Specific standard order for Universitas BSI campus units
+        $unitOrder = [
+            'Admin & SO' => 1,
+            'Marketing Communication' => 2,
+            'Marcomm' => 2,
+            'BSI Career Center' => 3,
+            'BSI Entrepreneur Center' => 4,
+            'Kemahasiswaan' => 5,
+            'Technical Support' => 6,
+        ];
+
         $units = Unit::query()
             ->where('campus_id', $assignedCampus->id)
             ->withCount([
@@ -67,14 +108,121 @@ class DashboardController extends Controller
                     ->where('status', WorkProgram::STATUS_ACTIVE)
                     ->whereDoesntHave('progressUpdates'),
             ])
-            ->with(['workPrograms.latestProgress'])
-            ->orderBy('name')
-            ->get();
+            ->with(['workPrograms.latestProgress', 'workPrograms.monthlyTargets'])
+            ->get()
+            ->sortBy(fn (Unit $u) => $unitOrder[$u->name] ?? 99)
+            ->values();
 
         $programs = WorkProgram::query()
             ->where('campus_id', $assignedCampus->id)
-            ->with('latestProgress')
+            ->with(['latestProgress', 'monthlyTargets', 'unit'])
             ->get();
+
+        // Calculate metrics per unit for the selected period (Tahunan vs Bulanan)
+        $unitStats = [];
+        $allUnitsCapaian = [];
+        $needsAttentionCount = 0;
+        $totalPeriodTarget = 0;
+        $totalPeriodActual = 0;
+
+        foreach ($units as $unit) {
+            $uPrograms = $unit->workPrograms->where('year', $selectedYear);
+            $uProgCount = $uPrograms->count();
+
+            if ($selectedPeriod === 'bulanan') {
+                $progPercentages = [];
+                $uTarget = 0;
+                $uActual = 0;
+
+                foreach ($uPrograms as $p) {
+                    $mt = $p->monthlyTargets->firstWhere('month', $selectedMonth);
+                    $t = $mt ? (float) $mt->target : 0;
+                    $a = $mt && $mt->actual !== null ? (float) $mt->actual : null;
+                    $uTarget += $t;
+                    if ($a !== null) {
+                        $uActual += $a;
+                        $progPercentages[] = $t > 0 ? min(100, round(($a / $t) * 100, 1)) : 100;
+                    } else {
+                        $progPercentages[] = 0;
+                    }
+                }
+
+                $uCapaian = count($progPercentages) > 0 ? round(array_sum($progPercentages) / count($progPercentages), 1) : 0;
+                $periodTarget = $uTarget;
+                $periodActual = $uActual;
+            } else {
+                // Annual evaluation
+                $progPercentages = [];
+                $uTarget = 0;
+                $uActual = 0;
+
+                foreach ($uPrograms as $p) {
+                    $t = (float) $p->target;
+                    $a = (float) $p->totalMonthlyActual();
+                    if ($a <= 0 && $p->latestProgress) {
+                        $a = (float) $p->latestProgress->actual;
+                    }
+                    $uTarget += $t;
+                    $uActual += $a;
+                    if ($t > 0) {
+                        $progPercentages[] = min(100, round(($a / $t) * 100, 1));
+                    }
+                }
+
+                $uCapaian = count($progPercentages) > 0 ? round(array_sum($progPercentages) / count($progPercentages), 1) : 0;
+                $periodTarget = $uTarget;
+                $periodActual = $uActual;
+            }
+
+            $allUnitsCapaian[] = $uCapaian;
+            $totalPeriodTarget += $periodTarget;
+            $totalPeriodActual += $periodActual;
+
+            if ($uCapaian >= 75) {
+                $statusLabel = 'Baik';
+                $statusColor = 'success';
+                $barHex = '#1B7340';
+                $badgeBg = '#DCFCE7';
+                $badgeText = '#15803D';
+            } elseif ($uCapaian >= 60) {
+                $statusLabel = 'Berjalan';
+                $statusColor = 'primary';
+                $barHex = '#C27803';
+                $badgeBg = '#DBEAFE';
+                $badgeText = '#1D4ED8';
+            } else {
+                $statusLabel = 'Perhatian';
+                $statusColor = 'danger';
+                $barHex = '#DF0B2B';
+                $badgeBg = '#FEE2E2';
+                $badgeText = '#DC2626';
+                $needsAttentionCount++;
+            }
+
+            $unitStats[] = [
+                'unit' => $unit,
+                'program_count' => $uProgCount,
+                'target' => $periodTarget,
+                'actual' => $periodActual,
+                'capaian' => $uCapaian,
+                'status' => $statusLabel,
+                'status_color' => $statusColor,
+                'bar_hex' => $barHex,
+                'badge_bg' => $badgeBg,
+                'badge_text' => $badgeText,
+            ];
+        }
+
+        $averageCapaian = count($allUnitsCapaian) > 0 ? (int) round(array_sum($allUnitsCapaian) / count($allUnitsCapaian)) : 0;
+
+        $executiveSummary = [
+            'total_units' => $units->count(),
+            'target_program' => $programs->count(),
+            'average_capaian' => $averageCapaian,
+            'needs_attention' => $needsAttentionCount,
+            'total_target' => $totalPeriodTarget,
+            'total_actual' => $totalPeriodActual,
+        ];
 
         $pendingTopics = \App\Models\CommunicationTopic::query()
             ->where('campus_id', $assignedCampus->id)
@@ -139,6 +287,12 @@ class DashboardController extends Controller
             'units',
             'programs',
             'summary',
+            'unitStats',
+            'executiveSummary',
+            'selectedPeriod',
+            'selectedMonth',
+            'selectedYear',
+            'monthNames',
             'chartMonths',
             'chartTargets',
             'chartActuals',

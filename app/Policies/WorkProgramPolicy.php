@@ -36,14 +36,14 @@ class WorkProgramPolicy
 
     public function create(User $user): bool
     {
-        return $user->role === User::ROLE_UNIT_HEAD
+        return in_array($user->role, [User::ROLE_UNIT_HEAD, User::ROLE_UNIT_MEMBER], true)
             && $user->unit_id !== null
             && $user->unit?->is_active;
     }
 
     public function update(User $user, WorkProgram $program): bool
     {
-        return $user->role === User::ROLE_UNIT_HEAD
+        return in_array($user->role, [User::ROLE_UNIT_HEAD, User::ROLE_UNIT_MEMBER], true)
             && $user->unit_id !== null
             && $user->unit?->is_active
             && (int) $program->unit_id === (int) $user->unit_id;

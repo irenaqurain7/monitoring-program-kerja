@@ -28,7 +28,10 @@
                 <div class="small text-secondary">Pantau jadwal dan progres target yang ditugaskan kepada unit Anda</div>
             </div>
             <div class="d-flex gap-2">
-                <a class="btn btn-sm btn-app" href="{{ route('communication.create') }}">Sampaikan Aspirasi / Kendala</a>
+                @can('create', \App\Models\WorkProgram::class)
+                    <a class="btn btn-sm btn-app" href="{{ route('work-programs.create') }}">Tambah Program</a>
+                @endcan
+                <a class="btn btn-sm btn-outline-navy" href="{{ route('communication.create') }}">Sampaikan Aspirasi</a>
                 <a class="btn btn-sm btn-outline-navy" href="{{ route('work-programs.index') }}">Daftar Program</a>
             </div>
         </div>
