@@ -227,27 +227,28 @@
         </div>
     </section>
 
-    <!-- Section: 12-Month Macro Trend Chart (Target vs Realisasi Jan - Des) -->
+    <!-- Section: Grafik Garis Capaian Tahunan Antarunit -->
     <div class="row g-4 mb-4">
         <div class="col-12 col-xl-8">
             <section class="card card-app h-100">
-                <div class="card-header bg-white border-bottom p-3 p-md-4 d-flex justify-content-between align-items-center">
+                <div class="card-header bg-white border-bottom p-3 p-md-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>
-                        <div class="eyebrow-luxury">Tren Kinerja 12 Bulan</div>
-                        <h2 class="h5 text-navy mb-0">Target vs Realisasi (Januari - Desember {{ $selectedYear }})</h2>
+                        <div class="eyebrow-luxury">Grafik Garis Kinerja</div>
+                        <h2 class="h5 text-navy mb-0">Capaian Tahunan Antarunit (Tahun {{ $selectedYear }})</h2>
+                        <div class="small text-secondary mt-1">Perbandingan capaian target program kerja tahunan untuk setiap unit bagian</div>
                     </div>
                     <span class="badge" style="background: rgba(33, 74, 123, 0.08); color: var(--corporate-blue); font-weight: 600; font-size: 0.75rem;">
                         Tahun {{ $selectedYear }}
                     </span>
                 </div>
                 <div class="card-body p-3 p-md-4">
-                    @if ($programs->isEmpty())
+                    @if ($units->isEmpty())
                         <div class="text-center text-secondary py-5">
-                            <p class="mb-0">Belum ada data program kerja untuk grafik analitik.</p>
+                            <p class="mb-0">Belum ada data unit untuk grafik garis analitik.</p>
                         </div>
                     @else
-                        <div style="position: relative; width: 100%; min-height: 250px;">
-                            <canvas id="monthlyExecutiveChart" height="90"></canvas>
+                        <div style="position: relative; width: 100%; min-height: 270px;">
+                            <canvas id="unitAnnualLineChart" height="110"></canvas>
                         </div>
                     @endif
                 </div>
@@ -367,89 +368,138 @@
         </div>
     </section>
 
-    <!-- Chart.js 12-Month Macro Trend -->
-    @if ($programs->isNotEmpty())
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const canvas = document.getElementById('monthlyExecutiveChart');
-                if (canvas && typeof Chart !== 'undefined') {
-                    new Chart(canvas, {
-                        type: 'bar',
-                        data: {
-                            labels: @json($chartMonths),
-                            datasets: [
-                                {
-                                    label: 'Target Terencana',
-                                    data: @json($chartTargets),
-                                    backgroundColor: 'rgba(33, 74, 123, 0.85)',
-                                    borderColor: '#214A7B',
-                                    borderWidth: 1,
-                                    borderRadius: 4
-                                },
-                                {
-                                    label: 'Realisasi Capaian',
-                                    data: @json($chartActuals),
-                                    backgroundColor: 'rgba(223, 11, 43, 0.85)',
-                                    borderColor: '#DF0B2B',
-                                    borderWidth: 1,
-                                    borderRadius: 4
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            interaction: {
-                                mode: 'index',
-                                intersect: false
+    <!-- Chart.js Annual Line Chart per Unit -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const canvas = document.getElementById('unitAnnualLineChart');
+            if (canvas && typeof Chart !== 'undefined') {
+                const ctx = canvas.getContext('2d');
+
+                let gradientFill = null;
+                if (ctx) {
+                    gradientFill = ctx.createLinearGradient(0, 0, 0, 260);
+                    gradientFill.addColorStop(0, 'rgba(33, 74, 123, 0.20)');
+                    gradientFill.addColorStop(1, 'rgba(33, 74, 123, 0.00)');
+                }
+
+                new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: @json($unitLineLabels),
+                        datasets: [
+                            {
+                                label: 'Capaian Tahunan (%)',
+                                data: @json($unitLineCapaian),
+                                borderColor: '#214A7B',
+                                backgroundColor: gradientFill || 'rgba(33, 74, 123, 0.12)',
+                                fill: true,
+                                tension: 0.28,
+                                borderWidth: 3,
+                                pointRadius: 7,
+                                pointHoverRadius: 9,
+                                pointBackgroundColor: @json($unitLinePointColors),
+                                pointBorderColor: '#FFFFFF',
+                                pointBorderWidth: 2,
+                                zIndex: 10
                             },
-                            plugins: {
-                                legend: {
-                                    position: 'top',
-                                    align: 'end',
-                                    labels: {
-                                        boxWidth: 10,
-                                        usePointStyle: true,
-                                        font: {
-                                            family: "'Plus Jakarta Sans', sans-serif",
-                                            size: 11
-                                        }
-                                    }
-                                },
-                                tooltip: {
-                                    backgroundColor: '#0B1D3A',
-                                    padding: 10,
-                                    cornerRadius: 6,
-                                    titleFont: {
+                            {
+                                label: 'Target Standar (100%)',
+                                data: @json($unitLineTargets),
+                                borderColor: '#94A3B8',
+                                borderDash: [6, 6],
+                                borderWidth: 1.5,
+                                pointRadius: 0,
+                                fill: false
+                            },
+                            {
+                                label: 'Batas Minimum Baik (75%)',
+                                data: @json($unitLineThresholds),
+                                borderColor: 'rgba(21, 128, 61, 0.65)',
+                                borderDash: [3, 3],
+                                borderWidth: 1.5,
+                                pointRadius: 0,
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    boxWidth: 10,
+                                    usePointStyle: true,
+                                    font: {
                                         family: "'Plus Jakarta Sans', sans-serif",
+                                        size: 11,
+                                        weight: '500'
+                                    },
+                                    padding: 14
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#0B1D3A',
+                                padding: 12,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    family: "'Plus Jakarta Sans', sans-serif",
+                                    weight: '600',
+                                    size: 12
+                                },
+                                bodyFont: {
+                                    family: "'Plus Jakarta Sans', sans-serif",
+                                    size: 11
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        return ' ' + label + ': ' + context.parsed.y + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    font: {
+                                        family: "'Plus Jakarta Sans', sans-serif",
+                                        size: 11,
                                         weight: '600'
                                     },
-                                    bodyFont: {
-                                        family: "'Plus Jakarta Sans', sans-serif"
-                                    }
+                                    color: '#1E293B'
                                 }
                             },
-                            scales: {
-                                x: {
-                                    grid: { display: false },
-                                    ticks: {
-                                        font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 }
-                                    }
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Persentase Capaian (%)',
+                                    font: { family: "'Plus Jakarta Sans', sans-serif", size: 10, weight: '600' },
+                                    color: '#64748B'
                                 },
-                                y: {
-                                    beginAtZero: true,
-                                    grid: {
-                                        color: 'rgba(11, 29, 58, 0.05)'
-                                    },
-                                    ticks: {
-                                        font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 }
+                                grid: {
+                                    color: 'rgba(11, 29, 58, 0.05)'
+                                },
+                                ticks: {
+                                    font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 },
+                                    callback: function(value) {
+                                        return value + '%';
                                     }
                                 }
                             }
                         }
-                    });
-                }
-            });
-        </script>
-    @endif
+                    }
+                });
+            }
+        });
+    </script>
 @endsection

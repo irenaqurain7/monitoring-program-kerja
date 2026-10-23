@@ -248,23 +248,44 @@ class DashboardController extends Controller
             'pending_topics' => $pendingTopics,
         ];
 
-        // 12-Month Aggregated Analytics for Target vs Realisasi
-        $monthlyTargetRecords = \App\Models\WorkProgramMonthlyTarget::query()
-            ->whereIn('work_program_id', $programs->pluck('id'))
-            ->selectRaw('month, SUM(target) as total_target, SUM(actual) as total_actual')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->keyBy('month');
+        // Annual Line Chart Datasets per Unit Section
+        $unitLineLabels = [];
+        $unitLineCapaian = [];
+        $unitLinePointColors = [];
+        $unitLineTargets = [];
+        $unitLineThresholds = [];
 
-        $chartMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-        $chartTargets = [];
-        $chartActuals = [];
+        foreach ($units as $unit) {
+            $uPrograms = $unit->workPrograms->where('year', $selectedYear);
+            $progPercentages = [];
 
-        for ($m = 1; $m <= 12; $m++) {
-            $record = $monthlyTargetRecords->get($m);
-            $chartTargets[] = $record ? (float) $record->total_target : 0.0;
-            $chartActuals[] = $record ? (float) $record->total_actual : 0.0;
+            foreach ($uPrograms as $p) {
+                $t = (float) $p->target;
+                $a = (float) $p->totalMonthlyActual();
+                if ($a <= 0 && $p->latestProgress) {
+                    $a = (float) $p->latestProgress->actual;
+                }
+                if ($t > 0) {
+                    $progPercentages[] = min(100, round(($a / $t) * 100, 1));
+                }
+            }
+
+            $capaian = count($progPercentages) > 0 
+                ? round(array_sum($progPercentages) / count($progPercentages), 1) 
+                : 0;
+
+            $unitLineLabels[] = $unit->name;
+            $unitLineCapaian[] = $capaian;
+            $unitLineTargets[] = 100;
+            $unitLineThresholds[] = 75;
+
+            if ($capaian >= 75) {
+                $unitLinePointColors[] = '#15803D';
+            } elseif ($capaian >= 60) {
+                $unitLinePointColors[] = '#2563EB';
+            } else {
+                $unitLinePointColors[] = '#DF0B2B';
+            }
         }
 
         // Priority attention items (overdue or lacking recent updates)
@@ -293,9 +314,11 @@ class DashboardController extends Controller
             'selectedMonth',
             'selectedYear',
             'monthNames',
-            'chartMonths',
-            'chartTargets',
-            'chartActuals',
+            'unitLineLabels',
+            'unitLineCapaian',
+            'unitLinePointColors',
+            'unitLineTargets',
+            'unitLineThresholds',
             'attentionPrograms',
             'recentTopics'
         ));
