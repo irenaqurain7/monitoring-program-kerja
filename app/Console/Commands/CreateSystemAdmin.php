@@ -51,13 +51,13 @@ class CreateSystemAdmin extends Command
             return self::FAILURE;
         }
 
-        $password = $this->secret('Kata sandi (minimal 12 karakter)');
+        $password = $this->secret('Kata sandi (minimal 6 karakter)');
         $confirmation = $this->secret('Ulangi kata sandi');
 
         $passwordValidator = Validator::make(
             ['password' => $password],
-            ['password' => ['required', 'string', 'min:12', 'max:255']],
-            ['password.min' => 'Kata sandi harus memiliki minimal 12 karakter.'],
+            ['password' => ['required', 'string', 'min:6', 'max:255']],
+            ['password.min' => 'Kata sandi harus memiliki minimal 6 karakter.'],
         );
 
         if ($passwordValidator->fails() || $password !== $confirmation) {

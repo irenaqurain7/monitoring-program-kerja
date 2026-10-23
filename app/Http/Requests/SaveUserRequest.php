@@ -46,7 +46,7 @@ class SaveUserRequest extends FormRequest
             'password' => [
                 $target ? 'nullable' : 'required',
                 'string',
-                'min:12',
+                'min:6',
                 'max:255',
                 'confirmed',
             ],
@@ -117,7 +117,7 @@ class SaveUserRequest extends FormRequest
             'email.email' => 'Masukkan alamat email yang valid.',
             'email.unique' => 'Email sudah digunakan.',
             'password.required' => 'Kata sandi wajib diisi.',
-            'password.min' => 'Kata sandi minimal 12 karakter.',
+            'password.min' => 'Kata sandi minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi kata sandi tidak sama.',
             'role.prohibited' => 'Peran akses ditentukan berdasarkan unit bagian.',
             'employment_type.required' => 'Status kepegawaian wajib dipilih.',

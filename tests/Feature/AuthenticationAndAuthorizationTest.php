@@ -192,13 +192,13 @@ class AuthenticationAndAuthorizationTest extends TestCase
 
     public function test_first_system_admin_is_created_with_a_hashed_password(): void
     {
-        $password = 'KataSandiUji123!';
+        $password = 'Uji123';
 
         $this->artisan('app:create-system-admin')
             ->expectsQuestion('Nama Admin Sistem', 'Admin Uji')
             ->expectsQuestion('Alamat email', 'admin.uji@example.test')
             ->expectsQuestion('Nama pengguna', 'admin-uji')
-            ->expectsQuestion('Kata sandi (minimal 12 karakter)', $password)
+            ->expectsQuestion('Kata sandi (minimal 6 karakter)', $password)
             ->expectsQuestion('Ulangi kata sandi', $password)
             ->expectsOutput('Akun Admin Sistem berhasil dibuat.')
             ->assertSuccessful();

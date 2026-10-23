@@ -108,14 +108,14 @@
                         <label for="password" class="form-label">Kata sandi {{ $managedUser->exists ? '(opsional)' : '' }}</label>
                         <input id="password" name="password" type="password"
                                class="form-control @error('password') is-invalid @enderror"
-                               autocomplete="new-password" minlength="12" {{ $managedUser->exists ? '' : 'required' }}>
+                               autocomplete="new-password" minlength="6" {{ $managedUser->exists ? '' : 'required' }}>
                         @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         @if ($managedUser->exists)<div class="form-text">Kosongkan jika tidak ingin mengganti kata sandi.</div>@endif
                     </div>
                     <div class="col-12 col-md-6">
                         <label for="password_confirmation" class="form-label">Konfirmasi kata sandi</label>
                         <input id="password_confirmation" name="password_confirmation" type="password"
-                               class="form-control" autocomplete="new-password" minlength="12">
+                               class="form-control" autocomplete="new-password" minlength="6">
                     </div>
                     @if ($managedUser->exists)
                         <div class="col-12">

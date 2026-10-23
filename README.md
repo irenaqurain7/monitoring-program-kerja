@@ -27,7 +27,7 @@ Fondasi tahap ini menggunakan Laravel 10, PHP 8.1, MySQL, Blade, dan Bootstrap 5
 
 ### Membuat Admin Sistem pertama
 
-Jalankan `php artisan app:create-system-admin`, lalu masukkan nama, email, nama pengguna, dan kata sandi minimal 12 karakter pada prompt tersembunyi. Kata sandi diminta dua kali, di-hash oleh Laravel, dan tidak menjadi argumen perintah atau nilai tetap di kode. Perintah hanya membuat Admin Sistem pertama dan menolak membuat akun kedua. Tidak ada pendaftaran publik.
+Jalankan `php artisan app:create-system-admin`, lalu masukkan nama, email, nama pengguna, dan kata sandi minimal 6 karakter pada prompt tersembunyi. Kata sandi diminta dua kali, di-hash oleh Laravel, dan tidak menjadi argumen perintah atau nilai tetap di kode. Perintah hanya membuat Admin Sistem pertama dan menolak membuat akun kedua. Tidak ada pendaftaran publik.
 
 ### Login dengan nama pengguna dan kampus
 
